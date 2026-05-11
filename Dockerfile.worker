@@ -1,0 +1,13 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# código já compilado e dependências já presentes no contexto
+COPY package.json ./
+COPY node_modules ./node_modules
+COPY prisma ./prisma
+COPY dist ./dist
+
+ENV NODE_ENV=production
+
+CMD ["node", "dist/scripts/cron.js"]

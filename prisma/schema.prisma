@@ -1,0 +1,447 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
+
+enum Role {
+  SUPER_ADMIN
+  MANAGER
+  RESIDENT
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum BillingFollowUpStatus {
+  ATRASADO
+  CONTATO_FEITO
+  EM_ACORDO
+  JURIDICO
+  QUITADO
+}
+
+enum CorrectionIndex {
+  INPC
+  IPCA
+  IGPM
+  SELIC
+}
+
+enum InterestMode {
+  SIMPLE
+  COMPOUND
+  NONE
+}
+
+enum InstallmentCalculationType {
+  DEBT
+  COST
+}
+
+//////////////////////////////////////////////////////
+// USERS
+//////////////////////////////////////////////////////
+
+model User {
+  id String @id @default(cuid())
+
+  name     String
+  document String? @unique
+  phone    String?
+  email    String  @unique
+  password String
+
+  role Role @default(RESIDENT)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  manager  Manager?
+  resident Resident?
+
+  @@index([document])
+  @@map("users")
+}
+
+//////////////////////////////////////////////////////
+// MANAGER
+//////////////////////////////////////////////////////
+
+model Manager {
+  id String @id @default(cuid())
+
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  condominiums Condominium[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("managers")
+}
+
+//////////////////////////////////////////////////////
+// CONDOMINIUM
+//////////////////////////////////////////////////////
+
+model Condominium {
+  id String @id @default(cuid())
+
+  name    String
+  address String
+
+  cnpj String? @unique
+
+  zipCode String? @map("zip_code")
+  city    String?
+  state   String?
+
+  managerId String  @map("manager_id")
+  manager   Manager @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  apartments      Apartment[]
+  billingSettings BillingSettings?
+
+  // NOVO
+  invoices     Invoice[]
+  billingCases BillingCase[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([managerId])
+  @@map("condominiums")
+}
+
+//////////////////////////////////////////////////////
+// APARTMENT
+//////////////////////////////////////////////////////
+
+model Apartment {
+  id String @id @default(cuid())
+
+  block  String?
+  number String
+
+  areaM2      Decimal? @db.Decimal(10, 2)
+  fractionPct Decimal? @db.Decimal(10, 4)
+
+  condominiumId String      @map("condominium_id")
+  condominium   Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+
+  residents Resident[]
+
+  // NOVO
+  billingCases BillingCase[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([block, number, condominiumId])
+  @@index([condominiumId])
+  @@map("apartments")
+}
+
+//////////////////////////////////////////////////////
+// RESIDENT
+//////////////////////////////////////////////////////
+
+model Resident {
+  id String @id @default(cuid())
+
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  apartmentId String    @map("apartment_id")
+  apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+
+  invoices Invoice[]
+
+  // NOVO
+  billingCases BillingCase[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([apartmentId])
+  @@map("residents")
+}
+
+//////////////////////////////////////////////////////
+// BILLING SETTINGS
+//////////////////////////////////////////////////////
+
+model BillingSettings {
+  id String @id @default(cuid())
+
+  condominiumId String      @unique
+  condominium   Condominium @relation(fields: [condominiumId], references: [id])
+
+  multaPercent    Decimal  @db.Decimal(5, 2)
+  jurosPercentDia Decimal  @db.Decimal(5, 4)
+  correcaoPercent Decimal? @db.Decimal(5, 2)
+
+  graceDays Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@map("billing_settings")
+}
+
+//////////////////////////////////////////////////////
+// INVOICE
+//////////////////////////////////////////////////////
+
+model Invoice {
+  id String @id @default(cuid())
+
+  residentId String
+  resident   Resident @relation(fields: [residentId], references: [id])
+
+  // DESNORMALIZAÇÃO
+  condominiumId String @map("condominium_id")
+  managerId     String @map("manager_id")
+
+  condominium Condominium @relation(fields: [condominiumId], references: [id])
+
+  invoiceDocuments InvoiceDocument[]
+
+  // NOVO
+  billingCaseItems BillingCaseInvoice[]
+
+  number     String?
+  type       String?
+  competence String?
+
+  amountOriginal Decimal @db.Decimal(12, 2)
+
+  amountJuros    Decimal @default(0) @db.Decimal(12, 2)
+  amountMulta    Decimal @default(0) @db.Decimal(12, 2)
+  amountCorrecao Decimal @default(0) @db.Decimal(12, 2)
+
+  amountTotal Decimal @db.Decimal(12, 2)
+
+  lastCalculatedAt DateTime?
+
+  dueDate  DateTime
+  issuedAt DateTime?
+  paidAt   DateTime?
+
+  status InvoiceStatus
+
+  description String?
+
+  createdAt DateTime @default(now())
+
+  daysLate Int @default(0)
+
+  @@index([managerId, status, dueDate])
+  @@index([managerId, id])
+  @@index([condominiumId, status, dueDate])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+//////////////////////////////////////////////////////
+// INVOICE DOCUMENT
+//////////////////////////////////////////////////////
+
+model InvoiceDocument {
+  id String @id @default(cuid())
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  name     String
+  filePath String
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+  @@map("invoice_documents")
+}
+
+//////////////////////////////////////////////////////
+// BILLING CASE
+// CASO DE COBRANÇA / ACOMPANHAMENTO
+//////////////////////////////////////////////////////
+
+model BillingCase {
+  id String @id @default(cuid())
+
+  condominiumId String      @map("condominium_id")
+  condominium   Condominium @relation(fields: [condominiumId], references: [id], onDelete: Cascade)
+
+  apartmentId String?    @map("apartment_id")
+  apartment   Apartment? @relation(fields: [apartmentId], references: [id])
+
+  residentId String?   @map("resident_id")
+  resident   Resident? @relation(fields: [residentId], references: [id])
+
+  // Dados do devedor
+  debtorName  String?
+  debtorEmail String?
+  debtorPhone String?
+
+  // Resumo financeiro
+  amountOriginal Decimal @default(0) @db.Decimal(12, 2)
+
+  amountCorrection Decimal @default(0) @db.Decimal(12, 2)
+  amountInterest   Decimal @default(0) @db.Decimal(12, 2)
+  amountPenalty    Decimal @default(0) @db.Decimal(12, 2)
+  amountFees       Decimal @default(0) @db.Decimal(12, 2)
+
+  amountTotal Decimal @default(0) @db.Decimal(12, 2)
+
+  // Configuração cálculo
+  correctionIndex CorrectionIndex
+  interestMode    InterestMode
+
+  interestRate Decimal @default(0) @db.Decimal(5, 2)
+  penaltyRate  Decimal @default(0) @db.Decimal(5, 2)
+  feeRate      Decimal @default(0) @db.Decimal(5, 2)
+
+  // Cobrança
+  status BillingFollowUpStatus @default(ATRASADO)
+
+  daysLate Int @default(0)
+
+  nextAction DateTime?
+
+  notes String? @db.Text
+
+  // Relacionamentos
+  histories  BillingHistory[]
+  agreements BillingAgreement[]
+
+  invoices BillingCaseInvoice[]
+
+  billingFeeReports BillingFeeReport[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([condominiumId, status])
+  @@index([residentId])
+  @@index([apartmentId])
+  @@index([status])
+  @@index([nextAction])
+  @@map("billing_cases")
+}
+
+//////////////////////////////////////////////////////
+// BILLING CASE INVOICES
+// N:N ENTRE COBRANÇA E FATURAS
+//////////////////////////////////////////////////////
+
+model BillingCaseInvoice {
+  id String @id @default(cuid())
+
+  billingCaseId String      @map("billing_case_id")
+  billingCase   BillingCase @relation(fields: [billingCaseId], references: [id], onDelete: Cascade)
+
+  invoiceId String  @map("invoice_id")
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  // Snapshot no momento da cobrança
+  correctionPercent Decimal @default(0) @db.Decimal(5, 2)
+
+  correctedAmount Decimal @default(0) @db.Decimal(12, 2)
+  interestAmount  Decimal @default(0) @db.Decimal(12, 2)
+
+  updatedAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  calculationType InstallmentCalculationType @default(DEBT)
+
+  penaltyRate Decimal? @db.Decimal(5, 2)
+
+  createdAt DateTime @default(now())
+
+  @@unique([billingCaseId, invoiceId])
+  @@index([billingCaseId])
+  @@index([invoiceId])
+  @@map("billing_case_invoices")
+}
+
+//////////////////////////////////////////////////////
+// HISTÓRICO DE COBRANÇA
+//////////////////////////////////////////////////////
+
+model BillingHistory {
+  id String @id @default(cuid())
+
+  billingCaseId String      @map("billing_case_id")
+  billingCase   BillingCase @relation(fields: [billingCaseId], references: [id], onDelete: Cascade)
+
+  date DateTime
+
+  text String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([billingCaseId])
+  @@index([date])
+  @@map("billing_histories")
+}
+
+//////////////////////////////////////////////////////
+// ACORDOS
+//////////////////////////////////////////////////////
+
+model BillingAgreement {
+  id String @id @default(cuid())
+
+  billingCaseId String      @map("billing_case_id")
+  billingCase   BillingCase @relation(fields: [billingCaseId], references: [id], onDelete: Cascade)
+
+  description String?
+
+  totalAmount Decimal @db.Decimal(12, 2)
+
+  installmentsCount Int
+
+  active Boolean @default(true)
+
+  startDate DateTime
+  endDate   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([billingCaseId])
+  @@index([active])
+  @@map("billing_agreements")
+}
+
+//////////////////////////////////////////////////////
+// RELATÓRIO DE ENCARGOS
+//////////////////////////////////////////////////////
+
+model BillingFeeReport {
+  id String @id @default(cuid())
+
+  billingCaseId String      @map("billing_case_id")
+  billingCase   BillingCase @relation(fields: [billingCaseId], references: [id], onDelete: Cascade)
+
+  referenceDate DateTime
+
+  totalAmount Decimal @db.Decimal(12, 2)
+  feeAmount   Decimal @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+
+  @@index([referenceDate])
+  @@map("billing_fee_reports")
+}

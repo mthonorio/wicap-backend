@@ -1,0 +1,54 @@
+{
+  "name": "wicap-backend",
+  "version": "1.0.0",
+  "description": "backend to WiCap - organizador de condominios",
+  "homepage": "https://github.com/mthonorio/wicap-backend#readme",
+  "bugs": {
+    "url": "https://github.com/mthonorio/wicap-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mthonorio/wicap-backend.git"
+  },
+  "license": "ISC",
+  "author": "Matheus Honorio",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:generate": "prisma generate",
+    "db:init": "prisma migrate dev --name init",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset",
+    "cron": "node dist/scripts/cron.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/jwt": "^10.0.0",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^2.4.3",
+    "csv-parse": "^5.5.6",
+    "date-fns": "^3.6.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.8.5",
+    "jsonwebtoken": "^9.0.3",
+    "lodash": "^4.17.21",
+    "node-cron": "^4.2.1",
+    "prisma": "^6.19.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/lodash": "^4.14.202",
+    "@types/node": "^25.6.2",
+    "eslint": "^10.3.0",
+    "prettier": "^3.8.3",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}
