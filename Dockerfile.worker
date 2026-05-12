@@ -10,4 +10,6 @@ COPY dist ./dist
 
 ENV NODE_ENV=production
 
+RUN npx prisma generate
+
 CMD ["node", "dist/scripts/cron.js"]
