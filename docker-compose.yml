@@ -4,16 +4,13 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/wicap?schema=public
       - JWT_SECRET=ad162e41d9b0b584b45d5ada5a3b35ed4f944497ad6af0729f626b657258260f
-      - NODE_ENV=development
+      - NODE_ENV=production
       - HOST=0.0.0.0
-      - PORT=3000
-    volumes:
-      - .:/app
-      - /app/node_modules
+      - PORT=8000
     depends_on:
       db:
         condition: service_healthy
