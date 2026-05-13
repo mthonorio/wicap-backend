@@ -28,14 +28,14 @@ export const condominiumRepository = {
         COALESCE(SUM(
           CASE 
             WHEN i.status IN ('PENDING', 'OVERDUE') 
-            THEN i.amount_total 
+            THEN i."amountTotal" 
             ELSE 0 
           END
         ), 0)::float AS "totalDebt"
       FROM condominiums c
       LEFT JOIN apartments a ON a.condominium_id = c.id
       LEFT JOIN residents r ON r.apartment_id = a.id
-      LEFT JOIN invoices i ON i.resident_id = r.id
+      LEFT JOIN invoices i ON i."residentId" = r.id
       ${managerId ? Prisma.sql`WHERE c.manager_id = ${managerId}` : Prisma.empty}
       GROUP BY c.id
       ORDER BY c.created_at DESC
