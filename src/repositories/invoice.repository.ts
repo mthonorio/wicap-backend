@@ -112,4 +112,33 @@ export const invoiceRepository = {
       data: { status },
     });
   },
+
+  async findWithRelations() {
+    return prisma.invoice.findMany({
+      include: {
+        resident: {
+          include: {
+            user: { select: { name: true, email: true } },
+            apartment: {
+              include: {
+                condominium: {
+                  select: { id: true, name: true },
+                },
+              },
+              select: { number: true },
+            },
+          },
+        },
+      },
+      orderBy: { dueDate: "desc" },
+    });
+  },
+
+  async groupByStatus() {
+    return prisma.invoice.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+      _sum: { amountTotal: true },
+    });
+  },
 };
