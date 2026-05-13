@@ -121,11 +121,8 @@ export const invoiceRepository = {
             user: { select: { name: true, email: true } },
             apartment: {
               include: {
-                condominium: {
-                  select: { id: true, name: true },
-                },
+                condominium: { select: { id: true, name: true } },
               },
-              select: { number: true },
             },
           },
         },
