@@ -34,10 +34,10 @@ export const adminController = {
 
   async getResidents(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const count = await adminService.getResidentsCount();
+      const residentsReport = await adminService.getResidents();
       return reply.code(200).send({
         success: true,
-        data: { total: count },
+        data: residentsReport,
       });
     } catch (error) {
       return reply.code(500).send({

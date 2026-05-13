@@ -2,6 +2,28 @@ import { prisma } from "../config/database";
 import { InvoiceStatus } from "@prisma/client";
 import { condominiumRepository } from "../repositories/condominium.repository";
 
+type ResidentReportStatus = "OVERDUE" | "PENDING" | "UP_TO_DATE";
+
+type ResidentReportItem = {
+  id: string;
+  user: {
+    name: string;
+    email: string;
+  };
+  apartment: {
+    number: string;
+    condominium: {
+      id: string;
+      name: string;
+    };
+  };
+  totalDebt: number;
+  totalPaid: number;
+  overdue: number;
+  hasDebt: boolean;
+  status: ResidentReportStatus;
+};
+
 export const adminService = {
   async getStats() {
     const [
@@ -61,8 +83,140 @@ export const adminService = {
     });
   },
 
-  async getResidentsCount() {
-    return prisma.resident.count();
+  async getResidents() {
+    const residents = await prisma.resident.findMany({
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+        apartment: {
+          select: {
+            number: true,
+            condominium: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const residentIds = residents.map((resident) => resident.id);
+
+    const invoiceTotals = residentIds.length
+      ? await prisma.invoice.groupBy({
+          by: ["residentId", "status"],
+          where: {
+            residentId: {
+              in: residentIds,
+            },
+          },
+          _sum: {
+            amountTotal: true,
+          },
+        })
+      : [];
+
+    const invoiceMap = new Map<
+      string,
+      { paid: number; overdue: number; pending: number }
+    >();
+
+    for (const invoice of invoiceTotals) {
+      const current = invoiceMap.get(invoice.residentId) ?? {
+        paid: 0,
+        overdue: 0,
+        pending: 0,
+      };
+      const amount = Number(invoice._sum.amountTotal || 0);
+
+      if (invoice.status === InvoiceStatus.PAID) {
+        invoiceMap.set(invoice.residentId, {
+          ...current,
+          paid: current.paid + amount,
+        });
+      }
+
+      if (invoice.status === InvoiceStatus.PENDING) {
+        invoiceMap.set(invoice.residentId, {
+          ...current,
+          pending: current.pending + amount,
+        });
+      }
+
+      if (invoice.status === InvoiceStatus.OVERDUE) {
+        invoiceMap.set(invoice.residentId, {
+          ...current,
+          overdue: current.overdue + amount,
+        });
+      }
+    }
+
+    const reportResidents: ResidentReportItem[] = residents.map((resident) => {
+      const totals = invoiceMap.get(resident.id) ?? {
+        paid: 0,
+        overdue: 0,
+        pending: 0,
+      };
+
+      const totalDebt = totals.pending + totals.overdue;
+      const status: ResidentReportStatus =
+        totals.overdue > 0
+          ? "OVERDUE"
+          : totalDebt > 0
+            ? "PENDING"
+            : "UP_TO_DATE";
+
+      return {
+        id: resident.id,
+        user: {
+          name: resident.user.name,
+          email: resident.user.email,
+        },
+        apartment: {
+          number: resident.apartment.number,
+          condominium: {
+            id: resident.apartment.condominium.id,
+            name: resident.apartment.condominium.name,
+          },
+        },
+        totalDebt,
+        totalPaid: totals.paid,
+        overdue: totals.overdue,
+        hasDebt: totalDebt > 0,
+        status,
+      };
+    });
+
+    const totals = reportResidents.reduce(
+      (accumulator, resident) => {
+        accumulator.totalDebt += resident.totalDebt;
+        accumulator.totalPaid += resident.totalPaid;
+        accumulator.totalOverdue += resident.overdue;
+        if (resident.hasDebt) {
+          accumulator.residentsWithDebt += 1;
+        }
+        return accumulator;
+      },
+      {
+        totalResidents: reportResidents.length,
+        totalDebt: 0,
+        totalOverdue: 0,
+        totalPaid: 0,
+        residentsWithDebt: 0,
+      },
+    );
+
+    return {
+      residents: reportResidents,
+      totals,
+    };
   },
 
   async getEncargos() {

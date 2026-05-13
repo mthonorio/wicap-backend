@@ -1,5 +1,5 @@
 import { prisma } from "../config/database";
-import { Prisma, Role } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 export const condominiumRepository = {
   async findMany(managerId?: string) {
