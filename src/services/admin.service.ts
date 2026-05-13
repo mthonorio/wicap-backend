@@ -1,28 +1,7 @@
 import { prisma } from "../config/database";
 import { InvoiceStatus } from "@prisma/client";
 import { condominiumRepository } from "../repositories/condominium.repository";
-
-type ResidentReportStatus = "OVERDUE" | "PENDING" | "UP_TO_DATE";
-
-type ResidentReportItem = {
-  id: string;
-  user: {
-    name: string;
-    email: string;
-  };
-  apartment: {
-    number: string;
-    condominium: {
-      id: string;
-      name: string;
-    };
-  };
-  totalDebt: number;
-  totalPaid: number;
-  overdue: number;
-  hasDebt: boolean;
-  status: ResidentReportStatus;
-};
+import { ResidentReportItem, ResidentReportStatus } from "../types/resident";
 
 export const adminService = {
   async getStats() {
