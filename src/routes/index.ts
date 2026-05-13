@@ -16,45 +16,45 @@ export async function setupRoutes(app: FastifyInstance) {
   // ========================================
   // AUTH ROUTES (PUBLIC)
   // ========================================
-  app.post("/auth/login", authController.login);
-  app.post("/auth/logout", authController.logout);
-  app.get("/auth/me", { onRequest: authMiddleware }, authController.me);
+  app.post("/v1/auth/login", authController.login);
+  app.post("/v1/auth/logout", authController.logout);
+  app.get("/v1/auth/me", { onRequest: authMiddleware }, authController.me);
 
   // ========================================
   // ADMIN ROUTES (SUPER_ADMIN ONLY)
   // ========================================
   app.get(
-    "/admin/stats",
+    "/v1/admin/stats",
     { onRequest: [authMiddleware, requireRole(Role.SUPER_ADMIN)] },
     adminController.getStats,
   );
   app.get(
-    "/admin/managers",
+    "/v1/admin/managers",
     { onRequest: [authMiddleware, requireRole(Role.SUPER_ADMIN)] },
     adminController.getManagers,
   );
   app.post(
-    "/admin/managers",
+    "/v1/admin/managers",
     { onRequest: [authMiddleware, requireRole(Role.SUPER_ADMIN)] },
     adminAuthController.createManager,
   );
   app.get(
-    "/admin/residents",
+    "/v1/admin/residents",
     { onRequest: [authMiddleware, requireRole(Role.SUPER_ADMIN)] },
     adminController.getResidents,
   );
   app.get(
-    "/admin/condominiums",
+    "/v1/admin/condominiums",
     { onRequest: [authMiddleware, requireRole(Role.SUPER_ADMIN)] },
     adminController.getCondominiums,
   );
   app.get(
-    "/admin/encargos",
+    "/v1/admin/encargos",
     { onRequest: [authMiddleware, requireRole(Role.SUPER_ADMIN)] },
     adminController.getEncargos,
   );
   app.get(
-    "/admin/reports",
+    "/v1/admin/reports",
     { onRequest: [authMiddleware, requireRole(Role.SUPER_ADMIN)] },
     adminController.getReports,
   );
@@ -63,12 +63,12 @@ export async function setupRoutes(app: FastifyInstance) {
   // CONDOMINIUM ROUTES (MANAGER + SUPER_ADMIN)
   // ========================================
   app.get(
-    "/condominiums",
+    "/v1/condominiums",
     { onRequest: authMiddleware },
     condominiumController.getAll,
   );
   app.post(
-    "/condominiums",
+    "/v1/condominiums",
     {
       onRequest: [authMiddleware, requireRole(Role.MANAGER, Role.SUPER_ADMIN)],
     },
@@ -79,12 +79,12 @@ export async function setupRoutes(app: FastifyInstance) {
   // APARTMENT ROUTES (MANAGER + SUPER_ADMIN)
   // ========================================
   app.get(
-    "/apartments",
+    "/v1/apartments",
     { onRequest: authMiddleware },
     apartmentController.getAll,
   );
   app.post(
-    "/apartments",
+    "/v1/apartments",
     {
       onRequest: [authMiddleware, requireRole(Role.MANAGER, Role.SUPER_ADMIN)],
     },
@@ -95,7 +95,7 @@ export async function setupRoutes(app: FastifyInstance) {
   // RESIDENT ROUTES (MANAGER + SUPER_ADMIN)
   // ========================================
   app.get(
-    "/residents",
+    "/v1/residents",
     { onRequest: authMiddleware },
     residentController.getAll,
   );
@@ -103,19 +103,23 @@ export async function setupRoutes(app: FastifyInstance) {
   // ========================================
   // INVOICE ROUTES (ALL AUTHENTICATED)
   // ========================================
-  app.get("/invoices", { onRequest: authMiddleware }, invoiceController.getAll);
   app.get(
-    "/invoices/:id",
+    "/v1/invoices",
+    { onRequest: authMiddleware },
+    invoiceController.getAll,
+  );
+  app.get(
+    "/v1/invoices/:id",
     { onRequest: authMiddleware },
     invoiceController.getById,
   );
   app.patch(
-    "/invoices/:id",
+    "/v1/invoices/:id",
     { onRequest: authMiddleware },
     invoiceController.updateStatus,
   );
   app.post(
-    "/invoices/import",
+    "/v1/invoices/import",
     {
       onRequest: [authMiddleware, requireRole(Role.MANAGER, Role.SUPER_ADMIN)],
     },
@@ -126,12 +130,12 @@ export async function setupRoutes(app: FastifyInstance) {
   // DASHBOARD ROUTES (ROLE SPECIFIC)
   // ========================================
   app.get(
-    "/dashboard/manager",
+    "/v1/dashboard/manager",
     { onRequest: [authMiddleware, requireRole(Role.MANAGER)] },
     dashboardController.getManagerDashboard,
   );
   app.get(
-    "/dashboard/resident",
+    "/v1/dashboard/resident",
     { onRequest: [authMiddleware, requireRole(Role.RESIDENT)] },
     dashboardController.getResidentDashboard,
   );
@@ -139,7 +143,7 @@ export async function setupRoutes(app: FastifyInstance) {
   // ========================================
   // HEALTH CHECK
   // ========================================
-  app.get("/health", async () => {
+  app.get("/v1/health", async () => {
     return { status: "ok" };
   });
 }
