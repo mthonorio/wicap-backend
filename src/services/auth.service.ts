@@ -2,14 +2,10 @@ import { userRepository } from "../repositories/user.repository";
 import { managerRepository } from "../repositories/manager.repository";
 import { passwordUtil } from "../utils/password.util";
 import { jwtUtil } from "../utils/jwt.util";
-import {
-  UnauthorizedError,
-  ValidationError,
-  ConflictError,
-} from "../utils/errors";
+import { UnauthorizedError, ConflictError } from "../utils/errors";
 import { AuthUser } from "../types";
 import { prisma } from "../config/database";
-import { LoginRequest, CreateManagerRequest } from "../schemas/auth.schema";
+import { CreateManagerRequest } from "../schemas/auth.schema";
 
 export const authService = {
   async login(

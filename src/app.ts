@@ -11,7 +11,7 @@ export async function createApp() {
 
   // Register plugins
   await app.register(cors, {
-    origin: env.CORS_ORIGIN,
+    origin: true,
   });
 
   await app.register(jwt, {
