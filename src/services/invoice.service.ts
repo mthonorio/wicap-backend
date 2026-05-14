@@ -14,6 +14,18 @@ export const invoiceService = {
     return invoiceRepository.findMany(filters);
   },
 
+  async createInvoice(data: {
+    amountTotal: number;
+    amountOriginal: number;
+    dueDate: string;
+    residentId: string;
+    condominiumId: string;
+    managerId: string;
+    status?: InvoiceStatus;
+  }) {
+    return invoiceRepository.create(data);
+  },
+
   async updateStatus(invoiceId: string, status: InvoiceStatus) {
     return invoiceRepository.updateStatus(invoiceId, status);
   },

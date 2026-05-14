@@ -138,4 +138,35 @@ export const invoiceRepository = {
       _sum: { amountTotal: true },
     });
   },
+
+  async create(data: {
+    amountOriginal: number;
+    amountTotal: number;
+    dueDate: string;
+    residentId: string;
+    condominiumId: string;
+    managerId: string;
+    status?: InvoiceStatus;
+  }) {
+    const {
+      amountTotal,
+      dueDate,
+      residentId,
+      condominiumId,
+      managerId,
+      status = InvoiceStatus.PENDING,
+      amountOriginal,
+    } = data;
+    return prisma.invoice.create({
+      data: {
+        amountOriginal,
+        amountTotal,
+        dueDate,
+        residentId,
+        condominiumId,
+        managerId,
+        status,
+      },
+    });
+  },
 };
